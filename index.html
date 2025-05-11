@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Car Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    .game {
+      position: relative;
+      width: 400px;
+      height: 600px;
+      margin: 20px auto;
+      background: linear-gradient(to bottom, #333 50%, #222 50%);
+      border: 4px solid #fff;
+      overflow: hidden;
+    }
+
+    /* Player Car */
+    .car {
+      width: 50px;
+      height: 100px;
+      position: absolute;
+      bottom: 20px;
+      left: 175px;
+      background: linear-gradient(to bottom, #d40000, #880000);
+      border-radius: 10px 10px 6px 6px;
+      box-shadow: 0 0 10px #f00;
+      overflow: hidden;
+    }
+
+    .car .window {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 30px;
+      height: 20px;
+      background: lightblue;
+      border-radius: 4px;
+    }
+
+    .car .headlight {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: yellow;
+      bottom: 5px;
+      border-radius: 50%;
+    }
+
+    .car .headlight.left {
+      left: 5px;
+    }
+
+    .car .headlight.right {
+      right: 5px;
+    }
+
+    .car .wheel {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: black;
+      border-radius: 50%;
+      bottom: 10px;
+    }
+
+    .car .wheel.left {
+      left: 5px;
+    }
+
+    .car .wheel.right {
+      right: 5px;
+    }
+
+    /* Enemy Car */
+    .enemy {
+      width: 50px;
+      height: 100px;
+      position: absolute;
+      top: -100px;
+      background: linear-gradient(to bottom, #0055ff, #002288);
+      border-radius: 10px;
+      box-shadow: 0 0 10px #00f;
+      overflow: hidden;
+    }
+
+    .enemy .window {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 30px;
+      height: 20px;
+      background: lightblue;
+      border-radius: 4px;
+    }
+
+    .enemy .sirens {
+      position: absolute;
+      top: 0;
+      left: 12px;
+      width: 26px;
+      height: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .enemy .sirens div {
+      width: 10px;
+      height: 8px;
+      border-radius: 2px;
+    }
+
+    .enemy .sirens .red {
+      background: red;
+    }
+
+    .enemy .sirens .blue {
+      background: cyan;
+    }
+
+    .enemy .wheel {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: black;
+      border-radius: 50%;
+      bottom: 10px;
+    }
+
+    .enemy .wheel.left {
+      left: 5px;
+    }
+
+    .enemy .wheel.right {
+      right: 5px;
+    }
+
+    .game-over {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 2.5em;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 30px 60px;
+      border-radius: 12px;
+      border: 2px solid red;
+      display: none;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <div class="car" id="player">
+      <div class="window"></div>
+      <div class="headlight left"></div>
+      <div class="headlight right"></div>
+      <div class="wheel left"></div>
+      <div class="wheel right"></div>
+    </div>
+    <div class="game-over" id="gameOver">💥 Game Over</div>
+  </div>
+
+  <script>
+    const game = document.querySelector('.game');
+    const player = document.getElementById('player');
+    const gameOverText = document.getElementById('gameOver');
+
+    let playerX = 175;
+    let speed = 5;
+    let enemies = [];
+    let isGameOver = false;
+    let enemySpawnInterval;
+
+    document.addEventListener('keydown', moveCar);
+
+    function moveCar(e) {
+      if (isGameOver) return;
+      if (e.key === 'ArrowLeft' && playerX > 0) {
+        playerX -= 25;
+        player.style.left = playerX + 'px';
+      }
+      if (e.key === 'ArrowRight' && playerX < 350) {
+        playerX += 25;
+        player.style.left = playerX + 'px';
+      }
+    }
+
+    function createEnemy() {
+      if (isGameOver) return;
+
+      const enemy = document.createElement('div');
+      enemy.classList.add('enemy');
+      enemy.style.left = Math.floor(Math.random() * 350) + 'px';
+
+      const window = document.createElement('div');
+      window.classList.add('window');
+      const sirens = document.createElement('div');
+      sirens.classList.add('sirens');
+      const red = document.createElement('div');
+      red.classList.add('red');
+      const blue = document.createElement('div');
+      blue.classList.add('blue');
+      sirens.appendChild(red);
+      sirens.appendChild(blue);
+
+      const wheelL = document.createElement('div');
+      wheelL.classList.add('wheel', 'left');
+      const wheelR = document.createElement('div');
+      wheelR.classList.add('wheel', 'right');
+
+      enemy.appendChild(window);
+      enemy.appendChild(sirens);
+      enemy.appendChild(wheelL);
+      enemy.appendChild(wheelR);
+
+      game.appendChild(enemy);
+      enemies.push({ el: enemy, y: -100 });
+    }
+
+    function moveEnemies() {
+      enemies.forEach((enemy, index) => {
+        enemy.y += speed;
+        enemy.el.style.top = enemy.y + 'px';
+
+        const rect1 = player.getBoundingClientRect();
+        const rect2 = enemy.el.getBoundingClientRect();
+        if (
+          rect1.left < rect2.right &&
+          rect1.right > rect2.left &&
+          rect1.top < rect2.bottom &&
+          rect1.bottom > rect2.top
+        ) {
+          endGame();
+        }
+
+        if (enemy.y > 600) {
+          game.removeChild(enemy.el);
+          enemies.splice(index, 1);
+        }
+      });
+    }
+
+    function gameLoop() {
+      if (!isGameOver) {
+        moveEnemies();
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function startGame() {
+      isGameOver = false;
+      requestAnimationFrame(gameLoop);
+      enemySpawnInterval = setInterval(createEnemy, 1000);
+    }
+
+    function endGame() {
+      isGameOver = true;
+      clearInterval(enemySpawnInterval);
+      gameOverText.style.display = 'block';
+    }
+
+    startGame();
+  </script>
+</body>
+</html>
